@@ -1,43 +1,41 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+#include <stdio.h>  // 파일 입출력
+#include <stdlib.h> // 메모리 할당 및 표준 라이브러리 함수
+#include <ctype.h>  // 문자 판별 함수 (isdigit, isalpha 등)
+#include <string.h> // 문자열 처리 함수
 
-// 🔹 토큰 타입 정의
+/**
+ * @enum TokenType
+ * @brief C 언어의 다양한 토큰을 표현
+ */
 typedef enum
 {
-    TOKEN_INT,        // 'int' 키워드
-    TOKEN_IDENTIFIER, // 변수 이름 (예: x, y)
-    TOKEN_NUMBER,     // 숫자 (예: 10, 42)
-    TOKEN_ASSIGN,     // '=' (할당 연산자)
-    TOKEN_PLUS,       // '+' (더하기 연산자)
-    TOKEN_MINUS,      // '-' (빼기 연산자)
-    TOKEN_TIMES,      // '*' (곱하기 연산자)
-    TOKEN_DIVIDE,     // '/' (나누기 연산자)
-    TOKEN_SEMICOLON,  // ';' (문장 종료)
-    TOKEN_EOF         // 파일 끝 (End of File)
+    TOKEN_EOF,        // 파일 끝
+    TOKEN_IDENTIFIER, // 변수명 또는 키워드
+    TOKEN_NUMBER,     // 숫자
+    TOKEN_OPERATOR,   // 연산자 (+, -, *, / 등)
+    TOKEN_PAREN,      // 괄호 (, )
+    TOKEN_BRACE,      // 중괄호 { }
+    TOKEN_SEMICOLON,  // 세미콜론 ;
+    TOKEN_KEYWORD,    // C 키워드 (예: int, return)
+    TOKEN_UNKNOWN     // 알 수 없는 토큰 (에러 처리용)
 } TokenType;
 
-// 🔹 토큰 구조체 정의
+/**
+ * @struct Token
+ * @brief 개별 토큰을 표현하는 구조체
+ */
 typedef struct
 {
-    TokenType type; // 토큰 타입
-    char *value;    // 실제 문자열 값
+    TokenType type; // 토큰 유형
+    char value[64]; // 토큰 값 (최대 64바이트 저장)
 } Token;
 
-// 🔹 Lexer 구조체 정의
-typedef struct
-{
-    char *input;  // 입력 코드
-    int position; // 현재 읽고 있는 위치
-} Lexer;
-
-// 🔹 함수 선언
-Lexer create_lexer(char *input);
-Token get_next_token(Lexer *lexer);
+// 함수 선언
+Token get_next_token(FILE *source);
 void print_token(Token token);
+int is_keyword(const char *word);
 
-#endif
+#endif // LEXER_H

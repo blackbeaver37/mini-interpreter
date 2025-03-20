@@ -1,30 +1,127 @@
 #include "lexer.h"
 
-// 🔹 Lexer 생성 함수
-Lexer create_lexer(char *input)
+// C 언어 키워드 목록
+const char *keywords[] = {
+    "int", "return", "if", "else", "for", "while", "void",
+    "char", "double", "float", "break", "continue", "struct"};
+
+/**
+ * @brief 주어진 단어가 C 언어 키워드인지 검사
+ * @param word 검사할 문자열
+ * @return 키워드이면 1, 아니면 0
+ */
+int is_keyword(const char *word)
 {
-    Lexer lexer;         // 새로운 Lexer 구조체 생성
-    lexer.input = input; // 입력 문자열 저장
-    lexer.position = 0;  // 시작 위치를 0으로 설정
-    return lexer;        // 초기화된 Lexer 반환
+    for (size_t i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++)
+    {
+        if (strcmp(word, keywords[i]) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
 }
 
-// 🔹 다음 문자를 가져오는 함수 (한 글자씩 읽고 위치 이동)
-char next_char(Lexer *lexer)
+/**
+ * @brief 입력 파일에서 다음 토큰을 가져옴
+ * @param source 입력 파일 포인터
+ * @return 분석된 토큰
+ */
+Token get_next_token(FILE *source)
 {
-    if (lexer->position < strlen(lexer->input)) // 입력 문자열 범위 내인지 확인
+    Token token;
+    int ch;
+
+    // 공백 및 개행 문자 건너뛰기
+    while ((ch = fgetc(source)) != EOF && isspace(ch))
+        ;
+
+    // 파일 끝(EOF) 처리
+    if (ch == EOF)
     {
-        return lexer->input[lexer->position++]; // 현재 문자를 반환 후 위치 증가
+        token.type = TOKEN_EOF;
+        strcpy(token.value, "EOF");
+        return token;
     }
-    return '\0'; // 문자열 끝(EOF)인 경우 NULL 문자 반환
+
+    // 숫자 토큰 처리 (정수)
+    if (isdigit(ch))
+    {
+        token.type = TOKEN_NUMBER;
+        int index = 0;
+        do
+        {
+            token.value[index++] = ch;
+            ch = fgetc(source);
+        } while (isdigit(ch) && index < 63);
+        token.value[index] = '\0';
+        ungetc(ch, source);
+        return token;
+    }
+
+    // 식별자(변수명 또는 키워드) 처리
+    if (isalpha(ch) || ch == '_')
+    {
+        token.type = TOKEN_IDENTIFIER;
+        int index = 0;
+        do
+        {
+            token.value[index++] = ch;
+            ch = fgetc(source);
+        } while ((isalnum(ch) || ch == '_') && index < 63);
+        token.value[index] = '\0';
+        ungetc(ch, source);
+
+        // 만약 키워드라면 키워드 토큰으로 변경
+        if (is_keyword(token.value))
+        {
+            token.type = TOKEN_KEYWORD;
+        }
+        return token;
+    }
+
+    // 연산자 처리 (+, -, *, /, =, <, >)
+    if (strchr("+-*/=<>", ch))
+    {
+        token.type = TOKEN_OPERATOR;
+        token.value[0] = ch;
+        token.value[1] = '\0';
+        return token;
+    }
+
+    // 괄호 처리 ((), {})
+    if (ch == '(' || ch == ')')
+    {
+        token.type = TOKEN_PAREN;
+    }
+    else if (ch == '{' || ch == '}')
+    {
+        token.type = TOKEN_BRACE;
+    }
+    else if (ch == ';')
+    {
+        token.type = TOKEN_SEMICOLON;
+    }
+    else
+    {
+        token.type = TOKEN_UNKNOWN;
+    }
+    token.value[0] = ch;
+    token.value[1] = '\0';
+    return token;
 }
 
-// 🔹 현재 위치의 다음 문자를 확인하는 함수 (소비하지 않음)
-char peek_char(Lexer *lexer)
+/**
+ * @brief 토큰 정보를 출력하는 함수
+ * @param token 출력할 토큰
+ */
+void print_token(Token token)
 {
-    if (lexer->position < strlen(lexer->input)) // 입력 문자열 범위 내인지 확인
-    {
-        return lexer->input[lexer->position]; // 현재 위치의 문자 반환 (소비하지 않음)
-    }
-    return '\0'; // 문자열 끝(EOF)인 경우 NULL 문자 반환
+    // 토큰 타입을 문자열로 변환하여 가독성을 높임
+    const char *token_names[] = {
+        "EOF", "IDENTIFIER", "NUMBER", "OPERATOR", "PARENTHESIS",
+        "BRACE", "SEMICOLON", "KEYWORD", "UNKNOWN"};
+
+    // 토큰 유형과 값을 정렬하여 출력
+    printf("Token Type: %-12s | Value: %s\n", token_names[token.type], token.value);
 }
